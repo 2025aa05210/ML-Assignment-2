@@ -18,7 +18,6 @@ st.set_page_config(page_title="ML Assignment 2", layout="wide")
 st.title("ML Assignment 2 – Classification Models")
 st.write("Upload test data and select a trained model to view evaluation metrics.")
 
-# Model selection (KNN removed)
 model_name = st.selectbox(
     "Select Classification Model",
     (
@@ -33,15 +32,15 @@ model_name = st.selectbox(
 uploaded_file = st.file_uploader("Upload Test CSV File", type=["csv"])
 
 if uploaded_file is not None:
-    data = pd.read_csv(uploaded_file, header=None)
+    data = pd.read_csv(uploaded_file)
 
     st.subheader("Uploaded Dataset Preview")
     st.dataframe(data.head())
 
-    st.info("MNIST dataset detected: First column is treated as target label")
-
-    y_true = data.iloc[:, 0]
-    X = data.iloc[:, 1:]
+    # Assume first column is target
+    target_column = data.columns[0]
+    y_true = data[target_column]
+    X = data.drop(columns=[target_column])
 
     model_path_map = {
         "Logistic Regression": "model/logistic_regression.pkl",
@@ -52,9 +51,9 @@ if uploaded_file is not None:
     }
 
     try:
-        model = joblib.load(model_path_map[model_name])
+        pipeline = joblib.load(model_path_map[model_name])
 
-        y_pred = model.predict(X)
+        y_pred = pipeline.predict(X)
 
         st.subheader("Evaluation Metrics")
 
@@ -63,7 +62,7 @@ if uploaded_file is not None:
         col2.metric("Precision", f"{precision_score(y_true, y_pred, average='weighted'):.4f}")
         col3.metric("Recall", f"{recall_score(y_true, y_pred, average='weighted'):.4f}")
 
-        col4, col5, col6 = st.columns(3)
+        col4, col5 = st.columns(2)
         col4.metric("F1 Score", f"{f1_score(y_true, y_pred, average='weighted'):.4f}")
         col5.metric("MCC", f"{matthews_corrcoef(y_true, y_pred):.4f}")
 
@@ -78,4 +77,6 @@ if uploaded_file is not None:
 
     except FileNotFoundError:
         st.error("Model file not found. Please check filenames in the model folder.")
+    except ValueError as e:
+        st.error(f"Input data shape mismatch: {e}")
 
